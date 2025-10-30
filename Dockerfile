@@ -11,7 +11,8 @@ COPY requirements.txt .
 # 使用 --no-cache-dir 减小镜像体积
 # 使用 playwright install --with-deps 安装浏览器及其系统依赖
 RUN pip install --no-cache-dir -r requirements.txt && \
-    playwright install --with-deps
+    playwright install --with-deps && \
+    camoufox fetch
 
 # 将项目中的所有文件拷贝到工作目录
 COPY . .
