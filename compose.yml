@@ -2,6 +2,7 @@ services:
   aistudio-websocket-app:
     image: aistudio-websocket
     build: .
+    pull_policy: never
     container_name: aistudio-websocket-app
     env_file:
       - .env
