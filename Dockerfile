@@ -1,5 +1,5 @@
 # 使用一个轻量的 Python 官方镜像作为基础
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # 设置工作目录，后续的命令都在这个目录下执行
 WORKDIR /app
