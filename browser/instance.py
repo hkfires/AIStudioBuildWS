@@ -6,6 +6,7 @@ from browser.navigation import handle_successful_navigation
 from camoufox.sync_api import Camoufox
 from utils.paths import logs_dir
 from utils.common import parse_headless_mode, ensure_dir
+from utils.url_helper import extract_url_path
 
 
 def run_browser_instance(config):
@@ -144,9 +145,13 @@ def run_browser_instance(config):
                 logger.error("检测到Google登录页面（需要输入邮箱）。Cookie已完全失效。")
                 page.screenshot(path=os.path.join(screenshot_dir, f"FAIL_identifier_page_{diagnostic_tag}.png"))
                 return
-            elif expected_url.split('?')[0] in final_url:
-                
-                logger.info("URL正确。现在等待页面完成初始加载...")
+
+            # 提取路径部分进行匹配（允许域名重定向）
+            expected_path = extract_url_path(expected_url).split('?')[0]
+            final_path = extract_url_path(final_url)
+
+            if expected_path and expected_path in final_path:
+                logger.info(f"URL验证通过。预期路径: {expected_path}, 最终URL: {final_url}")
 
                 # --- NEW ROBUST STRATEGY: Wait for the loading spinner to disappear ---
                 # This is the key to solving the race condition. The error message or
@@ -197,7 +202,10 @@ def run_browser_instance(config):
                 page.screenshot(path=os.path.join(screenshot_dir, f"FAIL_chooser_click_failed_{diagnostic_tag}.png"))
                 return
             else:
-                logger.error(f"导航到了一个意外的URL: {final_url}")
+                logger.error(f"导航到了意外的URL。")
+                logger.error(f"  预期路径: {expected_path}")
+                logger.error(f"  最终URL: {final_url}")
+                logger.error(f"  最终路径: {final_path}")
                 page.screenshot(path=os.path.join(screenshot_dir, f"FAIL_unexpected_url_{diagnostic_tag}.png"))
                 return
 
