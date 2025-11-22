@@ -57,7 +57,7 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
             click_counter += 1
 
             # 每30次点击（5分钟）执行一次完整的Cookie验证
-            if cookie_validator and click_counter >= 30:  # 30 * 10秒 = 300秒 = 5分钟
+            if cookie_validator and click_counter >= 10:  # 30 * 10秒 = 300秒 = 5分钟
                 is_valid = cookie_validator.validate_cookies_in_main_thread()
 
                 if not is_valid:

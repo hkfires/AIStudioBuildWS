@@ -22,6 +22,7 @@ class ProcessManager:
     def __init__(self):
         self.processes = {}  # {process_id: process_info}
         self.lock = threading.Lock()
+        self.logger = setup_logging(str(logs_dir() / 'app.log'), prefix="manager")
 
     def add_process(self, process, config=None):
         """添加进程到管理器"""
@@ -89,13 +90,21 @@ class ProcessManager:
                         alive.append(process)
                     else:
                         dead_pids.append(pid)
-                except (ValueError, ProcessLookupError):
+                        # 记录详细信息用于调试
+                        if process:
+                            self.logger.warning(f"进程 {pid} 已死亡")
+                        else:
+                            self.logger.warning(f"进程对象 {pid} 为None")
+                except (ValueError, ProcessLookupError) as e:
                     # 进程已经不存在
                     dead_pids.append(pid)
+                    self.logger.warning(f"进程 {pid} 检查时出错: {e}")
 
             # 清理死进程记录
             for pid in dead_pids:
                 self.remove_process(pid)
+                if dead_pids:
+                    self.logger.info(f"清理死进程记录: {dead_pids}")
 
             return alive
 
@@ -281,8 +290,10 @@ def start_browser_instances():
     try:
         while app_running:
             alive_processes = process_manager.get_alive_processes()
+            logger.info(f"当前存活进程数: {len(alive_processes)}")
+
             if not alive_processes:
-                logger.info("所有浏览器进程已结束")
+                logger.info("所有浏览器进程已结束，主进程即将退出")
                 break
 
             # 等待进程并清理死进程
@@ -297,6 +308,9 @@ def start_browser_instances():
         logger.info("捕获到键盘中断信号，等待信号处理器完成关闭...")
         # 不在这里关闭进程，让信号处理器统一处理
         pass
+
+    # 确保在所有进程结束后退出
+    logger.info("浏览器实例管理器运行结束")
 
 def run_standalone_mode():
     """独立模式"""
