@@ -294,6 +294,7 @@ def start_browser_instances():
 
             if not alive_processes:
                 logger.info("所有浏览器进程已结束，主进程即将退出")
+                app_running = False  # 确保退出循环
                 break
 
             # 等待进程并清理死进程
@@ -304,6 +305,11 @@ def start_browser_instances():
                     pass
 
             time.sleep(1)
+
+        # 最终检查：确保退出
+        logger.info("浏览器实例管理器运行结束")
+        sys.exit(0)
+
     except KeyboardInterrupt:
         logger.info("捕获到键盘中断信号，等待信号处理器完成关闭...")
         # 不在这里关闭进程，让信号处理器统一处理
@@ -318,6 +324,10 @@ def run_standalone_mode():
     app_running = True
 
     start_browser_instances()
+
+    # 确保函数结束时退出
+    logger.info("独立模式运行完成")
+    sys.exit(0)
 
 def run_server_mode():
     """服务器模式"""

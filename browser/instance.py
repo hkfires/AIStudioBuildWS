@@ -238,14 +238,13 @@ def run_browser_instance(config):
         if 'cookie_validator' in locals():
             cookie_validator.stop_validation()
     except SystemExit as e:
-        # 捕获Cookie验证失败时的系统退出
-        if e.code == 1:
-            logger.error("实例因Cookie验证失败而退出")
-        else:
-            logger.info(f"实例正常退出，退出码: {e.code}")
-        # 停止Cookie验证器
+        # 捕获系统退出信号
+        # Cookie验证失败时的日志已经在cookie_validator中显示了，这里完全静默处理
         if 'cookie_validator' in locals():
-            cookie_validator.stop_validation()
+            try:
+                cookie_validator.stop_validation()
+            except:
+                pass  # 忽略停止验证时的任何错误
     except Exception as e:
         # 这是一个最终的捕获，用于捕获所有未预料到的错误
         logger.exception(f"运行 Camoufox 实例时发生未预料的严重错误: {e}")
