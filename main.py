@@ -350,8 +350,28 @@ def run_server_mode():
     app_running = True
 
     # 在后台线程中启动浏览器实例
+    server_logger.info("服务器模式：启动浏览器实例管理后台线程...")
     browser_thread = threading.Thread(target=start_browser_instances, daemon=True)
     browser_thread.start()
+
+    # 定期检查浏览器实例状态
+    def monitor_browser_instances():
+        while app_running:
+            try:
+                alive_count = process_manager.get_alive_count()
+                total_count = process_manager.get_count()
+                server_logger.info(f"浏览器实例状态: {alive_count}/{total_count} 存活")
+
+                if total_count > 0 and alive_count == 0:
+                    server_logger.warning("所有浏览器实例已退出，但服务器仍在运行")
+
+                time.sleep(30)  # 每30秒检查一次
+            except Exception as e:
+                server_logger.error(f"监控浏览器实例时出错: {e}")
+                time.sleep(30)
+
+    monitor_thread = threading.Thread(target=monitor_browser_instances, daemon=True)
+    monitor_thread.start()
 
     # 定义路由
     @flask_app.route('/health')
