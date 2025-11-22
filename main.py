@@ -9,7 +9,7 @@ from browser.instance import run_browser_instance, shutdown_event as instance_sh
 from utils.logger import setup_logging
 from utils.paths import cookies_dir, logs_dir
 from utils.cookie_manager import CookieManager
-from utils.common import clean_env_value, ensure_dir
+from utils.common import clean_env_value, ensure_dir, mask_url
 
 # 全局变量
 app_running = False
@@ -195,6 +195,10 @@ def load_instance_configurations(logger):
     if not shared_url:
         logger.error("错误: 缺少环境变量 CAMOUFOX_INSTANCE_URL。所有实例需要一个共享的目标URL。")
         return None, None
+
+    # 记录脱敏后的URL
+    masked_shared_url = mask_url(shared_url)
+    logger.info(f"使用共享目标URL: {masked_shared_url}")
 
     # 2. 读取全局设置
     global_settings = {

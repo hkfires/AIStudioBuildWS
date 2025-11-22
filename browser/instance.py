@@ -8,7 +8,7 @@ from browser.navigation import handle_successful_navigation
 from browser.cookie_validator import CookieValidator
 from camoufox.sync_api import Camoufox
 from utils.paths import logs_dir
-from utils.common import parse_headless_mode, ensure_dir
+from utils.common import parse_headless_mode, ensure_dir, mask_url
 from utils.url_helper import extract_url_path
 
 # 全局关闭事件，用于优雅地关闭浏览器实例
@@ -94,10 +94,12 @@ def run_browser_instance(config):
             
             response = None
             try:
-                logger.info(f"正在导航到: {expected_url} (超时设置为 120 秒)")
+                masked_url = mask_url(expected_url)
+                logger.info(f"正在导航到: {masked_url} (超时设置为 120 秒)")
+
                 # page.goto() 会返回一个 response 对象，我们可以用它来获取状态码等信息
                 response = page.goto(expected_url, wait_until='domcontentloaded', timeout=120000)
-                
+
                 # 检查HTTP响应状态码
                 if response:
                     logger.info(f"导航初步成功，服务器响应状态码: {response.status} {response.status_text}")
@@ -111,7 +113,7 @@ def run_browser_instance(config):
 
             except TimeoutError:
                 # 这是最常见的错误：超时
-                logger.error(f"导航到 {expected_url} 超时 (超过120秒)。")
+                logger.error(f"导航到 {masked_url} 超时 (超过120秒)。")
                 logger.error("可能原因：网络连接缓慢、目标网站服务器无响应、代理问题、或页面资源被阻塞。")
                 # 尝试保存诊断信息
                 try:
@@ -132,7 +134,7 @@ def run_browser_instance(config):
             except PlaywrightError as e:
                 # 捕获其他Playwright相关的网络错误，例如DNS解析失败、连接被拒绝等
                 error_message = str(e)
-                logger.error(f"导航到 {expected_url} 时发生 Playwright 网络错误。")
+                logger.error(f"导航到 {masked_url} 时发生 Playwright 网络错误。")
                 logger.error(f"错误详情: {error_message}")
                 
                 # Playwright的错误信息通常很具体，例如 "net::ERR_CONNECTION_REFUSED"
@@ -158,7 +160,8 @@ def run_browser_instance(config):
             page.wait_for_timeout(2000)
             
             final_url = page.url
-            logger.info(f"导航完成。最终URL为: {final_url}")
+            masked_final_url = mask_url(final_url)
+            logger.info(f"导航完成。最终URL为: {masked_final_url}")
 
             # ... 你原有的URL检查逻辑保持不变 ...
             if "accounts.google.com/v3/signin/identifier" in final_url:
@@ -171,7 +174,7 @@ def run_browser_instance(config):
             final_path = extract_url_path(final_url)
 
             if expected_path and expected_path in final_path:
-                logger.info(f"URL验证通过。预期路径: {expected_path}")
+                logger.info("URL验证通过，路径匹配成功")
 
                 # --- 新的健壮策略：等待加载指示器消失 ---
                 # 这是解决竞态条件的关键。错误消息或内容只在初始加载完成后才会出现。
@@ -225,10 +228,8 @@ def run_browser_instance(config):
                 page.screenshot(path=os.path.join(screenshot_dir, f"FAIL_chooser_click_failed_{diagnostic_tag}.png"))
                 return
             else:
-                logger.error(f"导航到了意外的URL。")
-                logger.error(f"  预期路径: {expected_path}")
-                logger.error(f"  最终URL: {final_url}")
-                logger.error(f"  最终路径: {final_path}")
+                logger.error("导航到了意外的URL。")
+                logger.error(f"  最终URL: {masked_final_url}")
                 page.screenshot(path=os.path.join(screenshot_dir, f"FAIL_unexpected_url_{diagnostic_tag}.png"))
                 return
 
