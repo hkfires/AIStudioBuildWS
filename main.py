@@ -286,6 +286,9 @@ def start_browser_instances():
             logger.info(f"等待 30 秒后启动下一个实例...")
             time.sleep(30)
 
+    # 所有实例启动完成，开始监控进程
+    logger.info("所有浏览器实例启动完成，开始监控进程状态...")
+
     # 等待所有进程
     try:
         while app_running:
