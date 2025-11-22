@@ -5,6 +5,7 @@ from playwright.sync_api import TimeoutError, Error as PlaywrightError
 from utils.logger import setup_logging
 from utils.cookie_manager import CookieManager
 from browser.navigation import handle_successful_navigation
+from browser.cookie_validator import CookieValidator
 from camoufox.sync_api import Camoufox
 from utils.paths import logs_dir
 from utils.common import parse_headless_mode, ensure_dir
@@ -83,7 +84,10 @@ def run_browser_instance(config):
             context = browser.new_context()
             context.add_cookies(cookies)
             page = context.new_page()
-            
+
+            # 创建Cookie验证器
+            cookie_validator = CookieValidator(page, context, expected_url, logger, instance_label)
+
             # ####################################################################
             # ############ 增强的 page.goto() 错误处理和日志记录 ###############
             # ####################################################################
@@ -211,7 +215,11 @@ def run_browser_instance(config):
 
                 # --- 如果所有检查都通过，我们假设成功 ---
                 logger.info("所有验证通过，确认已成功登录。")
-                handle_successful_navigation(page, logger, diagnostic_tag, shutdown_event)
+
+                # 创建Cookie验证器（验证将在主线程中执行，避免线程问题）
+                logger.info("Cookie验证器已创建，将在主线程中定期验证Cookie有效性")
+
+                handle_successful_navigation(page, logger, diagnostic_tag, shutdown_event, cookie_validator)
             elif "accounts.google.com/v3/signin/accountchooser" in final_url:
                 logger.warning("检测到Google账户选择页面。登录失败或Cookie已过期。")
                 page.screenshot(path=os.path.join(screenshot_dir, f"FAIL_chooser_click_failed_{diagnostic_tag}.png"))
@@ -226,6 +234,21 @@ def run_browser_instance(config):
 
     except KeyboardInterrupt:
         logger.info(f"用户中断，正在关闭...")
+        # 停止Cookie验证器
+        if 'cookie_validator' in locals():
+            cookie_validator.stop_validation()
+    except SystemExit as e:
+        # 捕获Cookie验证失败时的系统退出
+        if e.code == 1:
+            logger.error("实例因Cookie验证失败而退出")
+        else:
+            logger.info(f"实例正常退出，退出码: {e.code}")
+        # 停止Cookie验证器
+        if 'cookie_validator' in locals():
+            cookie_validator.stop_validation()
     except Exception as e:
         # 这是一个最终的捕获，用于捕获所有未预料到的错误
         logger.exception(f"运行 Camoufox 实例时发生未预料的严重错误: {e}")
+        # 停止Cookie验证器
+        if 'cookie_validator' in locals():
+            cookie_validator.stop_validation()
