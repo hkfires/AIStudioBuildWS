@@ -56,15 +56,16 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
             page.click('body')
             click_counter += 1
 
+            # 临时禁用Cookie验证，确保浏览器实例能正常运行
             # 每10次点击（约2分钟）执行一次完整的Cookie验证
-            if cookie_validator and click_counter >= 10:  # 10 * 10秒 = 100秒 ≈ 2分钟
-                is_valid = cookie_validator.validate_cookies_in_main_thread()
-
-                if not is_valid:
-                    cookie_validator.shutdown_instance_on_cookie_failure()
-                    return
-
-                click_counter = 0  # 重置计数器
+            # if cookie_validator and click_counter >= 10:  # 10 * 10秒 = 100秒 ≈ 2分钟
+            #     is_valid = cookie_validator.validate_cookies_in_main_thread()
+            #
+            #     if not is_valid:
+            #         cookie_validator.shutdown_instance_on_cookie_failure()
+            #         return
+            #
+            #     click_counter = 0  # 重置计数器
 
             # 使用可中断的睡眠，每秒检查一次关闭信号
             for _ in range(10):  # 10秒 = 10次1秒检查

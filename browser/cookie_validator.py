@@ -65,7 +65,7 @@ class CookieValidator:
 
             # 如果没有跳转到登录页面，就算成功
             self.logger.info("Cookie验证成功")
-            return False
+            return True
 
         except TimeoutError:
             self.logger.error("Cookie验证失败: 页面加载超时")

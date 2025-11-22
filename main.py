@@ -356,6 +356,7 @@ def run_server_mode():
 
     # 定期检查浏览器实例状态
     def monitor_browser_instances():
+        server_logger.info("浏览器实例监控线程启动")
         while app_running:
             try:
                 alive_count = process_manager.get_alive_count()
@@ -368,10 +369,14 @@ def run_server_mode():
                 time.sleep(30)  # 每30秒检查一次
             except Exception as e:
                 server_logger.error(f"监控浏览器实例时出错: {e}")
+                import traceback
+                server_logger.error(f"错误详情: {traceback.format_exc()}")
                 time.sleep(30)
 
+    server_logger.info("启动浏览器实例监控线程...")
     monitor_thread = threading.Thread(target=monitor_browser_instances, daemon=True)
     monitor_thread.start()
+    server_logger.info("浏览器实例监控线程已启动")
 
     # 定义路由
     @flask_app.route('/health')
