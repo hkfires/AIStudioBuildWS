@@ -90,21 +90,15 @@ class ProcessManager:
                         alive.append(process)
                     else:
                         dead_pids.append(pid)
-                        # 记录详细信息用于调试
-                        if process:
-                            self.logger.warning(f"进程 {pid} 已死亡")
-                        else:
-                            self.logger.warning(f"进程对象 {pid} 为None")
+                        # 不在这里记录日志，避免在监控循环中产生过多日志
                 except (ValueError, ProcessLookupError) as e:
                     # 进程已经不存在
                     dead_pids.append(pid)
-                    self.logger.warning(f"进程 {pid} 检查时出错: {e}")
+                    # 不在这里记录日志，避免在监控循环中产生过多日志
 
             # 清理死进程记录
             for pid in dead_pids:
                 self.remove_process(pid)
-                if dead_pids:
-                    self.logger.info(f"清理死进程记录: {dead_pids}")
 
             return alive
 
@@ -300,30 +294,44 @@ def start_browser_instances():
 
     # 等待所有进程
     try:
+        monitor_count = 0
         while app_running:
-            alive_processes = process_manager.get_alive_processes()
-            logger.info(f"当前存活进程数: {len(alive_processes)}")
-
-            if not alive_processes:
-                logger.info("所有浏览器进程已结束，主进程即将退出")
-                # 等待一段时间，确认进程确实都已退出，避免误判
-                time.sleep(2)
+            try:
                 alive_processes = process_manager.get_alive_processes()
-                if not alive_processes:  # 再次确认
-                    logger.info("确认所有浏览器进程已结束")
-                    app_running = False  # 确保退出循环
-                    break
-                else:
-                    logger.info(f"发现仍有 {len(alive_processes)} 个进程存活，继续监控...")
+                monitor_count += 1
+                logger.info(f"[监控 #{monitor_count}] 当前存活进程数: {len(alive_processes)}")
 
-            # 等待进程并清理死进程
-            for process in alive_processes:
-                try:
-                    process.join(timeout=1)
-                except:
-                    pass
+                if not alive_processes:
+                    logger.info("所有浏览器进程已结束，主进程即将退出")
+                    # 等待一段时间，确认进程确实都已退出，避免误判
+                    time.sleep(2)
+                    alive_processes = process_manager.get_alive_processes()
+                    if not alive_processes:  # 再次确认
+                        logger.info("确认所有浏览器进程已结束")
+                        app_running = False  # 确保退出循环
+                        break
+                    else:
+                        logger.info(f"发现仍有 {len(alive_processes)} 个进程存活，继续监控...")
 
-            time.sleep(1)
+                # 等待进程并清理死进程
+                for process in alive_processes:
+                    try:
+                        process.join(timeout=1)
+                    except Exception as e:
+                        logger.debug(f"等待进程时出错: {e}")
+
+                # 使用可中断的睡眠
+                for _ in range(10):  # 10秒 = 10次1秒检查
+                    if not app_running:
+                        logger.info("收到退出信号，中断监控循环")
+                        break
+                    time.sleep(1)
+
+            except Exception as e:
+                logger.error(f"监控循环中发生错误: {e}")
+                import traceback
+                logger.error(f"错误详情: {traceback.format_exc()}")
+                time.sleep(1)
 
         # 最终检查：确保退出
         logger.info("浏览器实例管理器运行结束")
