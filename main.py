@@ -293,8 +293,10 @@ def start_browser_instances():
             logger.info(f"等待 30 秒后启动下一个实例...")
             time.sleep(30)
 
-    # 所有实例启动完成，开始监控进程
-    logger.info("所有浏览器实例启动完成，开始监控进程状态...")
+    # 所有实例启动完成，等待一段时间让进程稳定运行，然后开始监控
+    logger.info("所有浏览器实例启动完成，等待进程稳定...")
+    time.sleep(5)  # 等待5秒让进程完全启动
+    logger.info("开始监控进程状态...")
 
     # 等待所有进程
     try:
@@ -304,8 +306,15 @@ def start_browser_instances():
 
             if not alive_processes:
                 logger.info("所有浏览器进程已结束，主进程即将退出")
-                app_running = False  # 确保退出循环
-                break
+                # 等待一段时间，确认进程确实都已退出，避免误判
+                time.sleep(2)
+                alive_processes = process_manager.get_alive_processes()
+                if not alive_processes:  # 再次确认
+                    logger.info("确认所有浏览器进程已结束")
+                    app_running = False  # 确保退出循环
+                    break
+                else:
+                    logger.info(f"发现仍有 {len(alive_processes)} 个进程存活，继续监控...")
 
             # 等待进程并清理死进程
             for process in alive_processes:
@@ -318,7 +327,7 @@ def start_browser_instances():
 
         # 最终检查：确保退出
         logger.info("浏览器实例管理器运行结束")
-        sys.exit(0)
+        # 移除这里的sys.exit(0)，让函数正常返回，避免在run_standalone_mode()中重复调用
 
     except KeyboardInterrupt:
         logger.info("捕获到键盘中断信号，等待信号处理器完成关闭...")
@@ -337,7 +346,8 @@ def run_standalone_mode():
 
     # 确保函数结束时退出
     logger.info("独立模式运行完成")
-    sys.exit(0)
+    # 移除sys.exit(0)，让main函数正常结束
+    # 如果需要退出码，可以在main函数中统一处理
 
 def run_server_mode():
     """服务器模式"""
@@ -517,6 +527,10 @@ def main():
     else:
         logger.info("启动独立模式")
         run_standalone_mode()
+
+    # 确保程序正常退出
+    logger.info("程序执行完毕，正在退出...")
+    sys.exit(0)
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
