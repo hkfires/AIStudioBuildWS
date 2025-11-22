@@ -247,11 +247,14 @@ def start_browser_instances():
     log_dir = logs_dir()
     logger = setup_logging(str(log_dir / 'app.log'))
     logger.info("---------------------Camoufox 实例管理器开始启动---------------------")
+    logger.info("正在加载实例配置...")
 
     global_settings, instance_profiles = load_instance_configurations(logger)
     if not instance_profiles:
         logger.error("错误: 环境变量中未找到任何实例配置。")
         return
+
+    logger.info("实例配置加载完成，开始启动浏览器实例")
 
     for i, profile in enumerate(instance_profiles, 1):
         if not app_running:
@@ -501,11 +504,18 @@ def main():
         pass
 
     # 检查运行模式环境变量
+    log_dir = logs_dir()
+    logger = setup_logging(str(log_dir / 'app.log'))
+    logger.info("程序启动，检查运行模式...")
+
     hg_mode = os.getenv('HG', '').lower()
+    logger.info(f"HG环境变量: '{hg_mode}'")
 
     if hg_mode == 'true':
+        logger.info("启动服务器模式")
         run_server_mode()
     else:
+        logger.info("启动独立模式")
         run_standalone_mode()
 
 if __name__ == "__main__":
