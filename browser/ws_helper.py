@@ -20,7 +20,7 @@ def get_preview_frame(page: Page, logger=None) -> FrameLocator:
 def get_ws_status(page: Page, logger=None) -> str:
     """
     获取页面中WS连接状态（在iframe内部）。
-    返回: CONNECTED, IDLE, CONNECTING 或 UNKNOWN
+    返回: CONNECTED, IDLE, CONNECTING, RECONNECTING 或 UNKNOWN
     """
     try:
         frame = get_preview_frame(page, logger)
@@ -29,11 +29,13 @@ def get_ws_status(page: Page, logger=None) -> str:
         
         # 在iframe内查找包含 "WS:" 的状态文本元素
         # 根据截图，状态显示为 "WS: CONNECTED" 等格式
-        status_element = frame.locator('text=/WS:\\s*(CONNECTED|IDLE|CONNECTING)/i').first
+        status_element = frame.locator('text=/WS:\\s*(CONNECTED|IDLE|CONNECTING|RECONNECTING)/i').first
         if status_element.is_visible(timeout=3000):
             text = status_element.text_content()
             if text:
-                if "CONNECTED" in text.upper():
+                if "RECONNECTING" in text.upper():
+                    return "RECONNECTING"
+                elif "CONNECTED" in text.upper():
                     return "CONNECTED"
                 elif "IDLE" in text.upper():
                     return "IDLE"
