@@ -66,6 +66,7 @@ def run_browser_instance(config, shutdown_event=None):
     if proxy:
         logger.info(f"使用代理: {proxy} 访问")
         launch_options["proxy"] = {"server": proxy, "bypass": "localhost, 127.0.0.1"}
+        launch_options["geoip"] = True
     
     screenshot_dir = logs_dir()
     ensure_dir(screenshot_dir)

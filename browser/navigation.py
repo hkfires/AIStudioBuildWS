@@ -105,25 +105,12 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
             current_ws_status = get_ws_status(page, logger)
             if current_ws_status != last_ws_status:
                 logger.warning(f"WS状态变更: {last_ws_status} -> {current_ws_status}")
-                
-                # 状态变更时截图用于调试
-                try:
-                    from datetime import datetime
-                    screenshot_dir = logs_dir()
-                    ensure_dir(screenshot_dir)
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    screenshot_path = os.path.join(screenshot_dir, f"WS_STATUS_CHANGE_{cookie_file_config}_{timestamp}.png")
-                    page.screenshot(path=screenshot_path)
-                    logger.info(f"WS状态变更截图已保存: {screenshot_path}")
-                except Exception as e:
-                    logger.warning(f"WS状态变更截图失败: {e}")
-                
-                # # 如果不是CONNECTED状态，尝试重连
-                # if current_ws_status != "CONNECTED":
-                #     logger.info("WS断开，尝试重连...")
-                #     reconnect_ws(page, logger)
-                #     current_ws_status = get_ws_status(page, logger)
-                #     logger.info(f"重连后WS状态: {current_ws_status}")
+
+                # 如果不是CONNECTED状态，尝试重连
+                if current_ws_status != "CONNECTED":
+                    logger.info("WS断开，尝试重连...")
+                    reconnect_ws(page, logger)
+                    current_ws_status = get_ws_status(page, logger)
                 
                 last_ws_status = current_ws_status
 
