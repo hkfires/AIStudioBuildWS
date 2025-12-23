@@ -1,5 +1,6 @@
 import time
 import os
+import gc
 from playwright.sync_api import Page, expect
 from utils.paths import logs_dir
 from utils.common import ensure_dir
@@ -124,6 +125,9 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
                 if not is_valid:
                     cookie_validator.shutdown_instance_on_cookie_failure()
                     return
+
+                # 执行垃圾回收，释放循环引用和临时对象
+                gc.collect()
 
                 click_counter = 0  # 重置计数器
 
