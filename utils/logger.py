@@ -34,11 +34,17 @@ def setup_logging(log_file, prefix=None, level=logging.INFO):
     :param prefix: (可选) 要添加到每条日志消息开头的字符串前缀。
     :param level: 日志级别。
     """
-    logger = logging.getLogger('my_app_logger') 
+    # 使用进程ID + 前缀作为 logger 名称，避免不同进程/实例的 logger 互相干扰
+    logger_name = f'camoufox.{os.getpid()}'
+    if prefix:
+        logger_name += f'.{prefix}'
+    
+    logger = logging.getLogger(logger_name) 
     logger.setLevel(level)
 
+    # 如果该 logger 已有 handlers，说明已初始化过，直接返回
     if logger.hasHandlers():
-        logger.handlers.clear()
+        return logger
 
     base_format = '%(asctime)s - %(process)d - %(levelname)s - %(message)s'
 
