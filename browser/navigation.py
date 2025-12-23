@@ -3,7 +3,7 @@ import os
 from playwright.sync_api import Page, expect
 from utils.paths import logs_dir
 from utils.common import ensure_dir
-from browser.ws_helper import reconnect_ws, get_ws_status, dismiss_interaction_modal, click_in_iframe
+from browser.ws_helper import reconnect_ws, get_ws_status, dismiss_interaction_modal, click_in_iframe, PageLocators
 
 class KeepAliveError(Exception):
     pass
@@ -80,8 +80,11 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
     # 等待页面加载和渲染
     time.sleep(15)
 
+    # 创建 PageLocators 缓存对象，复用 locator 避免内存泄漏
+    locators = PageLocators(page)
+
     # 记录初始WS状态
-    last_ws_status = get_ws_status(page, logger)
+    last_ws_status = get_ws_status(page, logger, locators)
     logger.info(f"初始WS状态: {last_ws_status}")
 
     # 添加Cookie验证计数器
@@ -95,22 +98,22 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
 
         try:
             # 检测并关闭interaction-modal遮罩层（如果出现）
-            dismiss_interaction_modal(page, logger)
+            dismiss_interaction_modal(page, logger, locators)
 
             # 在iframe内随机移动并点击保活
-            click_in_iframe(page, logger)
+            click_in_iframe(page, logger, locators)
             click_counter += 1
 
             # 检查WS状态是否发生变化
-            current_ws_status = get_ws_status(page, logger)
+            current_ws_status = get_ws_status(page, logger, locators)
             if current_ws_status != last_ws_status:
                 logger.warning(f"WS状态变更: {last_ws_status} -> {current_ws_status}")
 
                 # 如果不是CONNECTED状态，尝试重连
                 if current_ws_status != "CONNECTED":
                     logger.info("WS断开，尝试重连...")
-                    reconnect_ws(page, logger)
-                    current_ws_status = get_ws_status(page, logger)
+                    reconnect_ws(page, logger, locators)
+                    current_ws_status = get_ws_status(page, logger, locators)
                 
                 last_ws_status = current_ws_status
 
