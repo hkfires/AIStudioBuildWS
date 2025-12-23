@@ -7,8 +7,9 @@ from utils.cookie_manager import CookieManager
 from browser.navigation import handle_successful_navigation, KeepAliveError
 from browser.cookie_validator import CookieValidator
 from camoufox.sync_api import Camoufox
+from camoufox.exceptions import InvalidIP, InvalidProxy
 from utils.paths import logs_dir
-from utils.common import parse_headless_mode, ensure_dir
+from utils.common import parse_headless_mode, ensure_dir, parse_proxy_config
 from utils.url_helper import extract_url_path, mask_url_for_logging, mask_path_for_logging
 
 
@@ -64,8 +65,13 @@ def run_browser_instance(config, shutdown_event=None):
     # launch_options["block_images"] = True  # 禁用图片加载
     
     if proxy:
-        logger.info(f"使用代理: {proxy} 访问")
-        launch_options["proxy"] = {"server": proxy, "bypass": "localhost, 127.0.0.1"}
+        proxy_config = parse_proxy_config(proxy)
+        if not proxy_config:
+            logger.error("错误: 代理配置无效，无法启动浏览器实例")
+            return
+        logger.info(f"使用代理: {proxy_config.get('server', proxy)} 访问")
+        launch_options["proxy"] = proxy_config
+        # launch_options["proxy"]["bypass"] = "localhost, 127.0.0.1"
         launch_options["geoip"] = True
     
     screenshot_dir = logs_dir()
@@ -153,6 +159,10 @@ def run_browser_instance(config, shutdown_event=None):
                         logger.info(f"已截取网络错误时的屏幕快照: {screenshot_path}")
                     except Exception as diag_e:
                         logger.error(f"在尝试进行网络错误诊断（截图）时发生额外错误: {diag_e}")
+
+                    error_message_lower = error_message.lower()
+                    if "proxy" in error_message_lower or "ns_error_proxy" in error_message_lower or "err_proxy" in error_message_lower:
+                        raise KeepAliveError(f"代理连接错误: {error_message}")
                     return # 网络错误，终止
 
                 # --- 如果导航没有抛出异常，继续执行后续逻辑 ---
@@ -237,7 +247,12 @@ def run_browser_instance(config, shutdown_event=None):
                 retry_count = 0
                 return
 
-        except KeepAliveError as e:
+        except (InvalidProxy, InvalidIP, KeepAliveError) as e:
+            if isinstance(e, (InvalidProxy, InvalidIP)):
+                retry_reason = f"代理/GeoIP 处理失败: {e}"
+                logger.error(retry_reason)
+            else:
+                retry_reason = str(e)
             retry_count += 1
             if retry_count > max_retries:
                 logger.error(f"重试次数已达上限 ({max_retries})，实例不再重启，退出")
@@ -245,7 +260,7 @@ def run_browser_instance(config, shutdown_event=None):
             
             # 指数退避：3秒、6秒、12秒、24秒...最长60秒
             delay = min(base_delay * (2 ** (retry_count - 1)), 60)
-            logger.error(f"浏览器实例出现错误 (重试 {retry_count}/{max_retries})，将在 {delay} 秒后重启浏览器实例: {e}")
+            logger.error(f"浏览器实例出现错误 (重试 {retry_count}/{max_retries})，将在 {delay} 秒后重启浏览器实例: {retry_reason}")
             time.sleep(delay)
             continue
         except KeyboardInterrupt:

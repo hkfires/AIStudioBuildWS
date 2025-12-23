@@ -5,6 +5,7 @@
 
 import os
 from pathlib import Path
+from urllib.parse import urlsplit, unquote
 
 def clean_env_value(value):
     """
@@ -50,3 +51,49 @@ def ensure_dir(path):
     if isinstance(path, str):
         path = Path(path)
     os.makedirs(path, exist_ok=True)
+
+
+def parse_proxy_config(proxy_value):
+    """
+    解析代理配置字符串为 Playwright/Camoufox 需要的 dict 结构
+
+    支持格式:
+    - scheme://user:pass@host:port
+    - scheme://host:port
+    - host:port
+    - user:pass@host:port (默认 http)
+
+    Returns:
+        dict or None: {"server": "...", "username": "...", "password": "..."} 或 None
+    """
+    if not proxy_value:
+        return None
+
+    proxy_value = proxy_value.strip()
+    if not proxy_value:
+        return None
+
+    if "://" in proxy_value:
+        parsed = urlsplit(proxy_value)
+        if not parsed.hostname:
+            return {"server": proxy_value}
+        scheme = parsed.scheme
+    else:
+        parsed = urlsplit(f"//{proxy_value}")
+        if not parsed.hostname:
+            return {"server": proxy_value}
+        scheme = "http"
+
+    host = parsed.hostname
+    if host and ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    server = f"{scheme}://{host}"
+    if parsed.port:
+        server += f":{parsed.port}"
+
+    result = {"server": server}
+    if parsed.username:
+        result["username"] = unquote(parsed.username)
+    if parsed.password:
+        result["password"] = unquote(parsed.password)
+    return result
