@@ -26,13 +26,14 @@ def setup_logging(log_file, prefix=None, level=logging.INFO):
     配置日志记录器，使其输出到文件和控制台。
     支持一个可选的前缀，用于标识日志来源。
 
-    每次调用都会重新配置处理器，以适应多进程环境。
+    每个 (进程ID, prefix) 组合对应一个独立的 logger，首次调用时初始化，
+    后续调用直接返回已有 logger，避免重复创建 handler 导致内存泄漏。
     
     时间显示默认为 UTC+8 (北京时间)，可通过环境变量 TZ_OFFSET 修改。
 
-    :param log_file: 日志文件的路径。
+    :param log_file: 日志文件的路径（仅首次调用生效）。
     :param prefix: (可选) 要添加到每条日志消息开头的字符串前缀。
-    :param level: 日志级别。
+    :param level: 日志级别（仅首次调用生效）。
     """
     # 使用进程ID + 前缀作为 logger 名称，避免不同进程/实例的 logger 互相干扰
     logger_name = f'camoufox.{os.getpid()}'

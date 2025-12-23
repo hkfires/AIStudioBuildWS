@@ -71,7 +71,6 @@ def run_browser_instance(config, shutdown_event=None):
             return
         logger.info(f"使用代理: {proxy_config.get('server', proxy)} 访问")
         launch_options["proxy"] = proxy_config
-        # launch_options["proxy"]["bypass"] = "localhost, 127.0.0.1"
         launch_options["geoip"] = True
     
     screenshot_dir = logs_dir()
