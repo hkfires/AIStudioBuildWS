@@ -109,9 +109,9 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
             if current_ws_status != last_ws_status:
                 logger.warning(f"WS状态变更: {last_ws_status} -> {current_ws_status}")
 
-                # 如果不是CONNECTED状态，尝试重连
-                if current_ws_status != "CONNECTED":
-                    logger.info("WS断开，尝试重连...")
+                # 如果状态变成IDLE，尝试重连
+                if current_ws_status == "IDLE":
+                    logger.info("WS状态为IDLE，尝试重连...")
                     reconnect_ws(page, logger, locators)
                     current_ws_status = get_ws_status(page, logger, locators)
                 
