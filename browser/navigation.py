@@ -1,5 +1,6 @@
 import time
 import os
+import random
 from playwright.sync_api import Page, expect
 from utils.paths import logs_dir
 from utils.common import ensure_dir
@@ -75,7 +76,7 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
     if cookie_validator:
         logger.info("Cookie验证器已创建，将定期验证Cookie有效性")
 
-    logger.info("实例将保持运行状态。每10秒点击一次页面以保持活动")
+    logger.info("实例将保持运行状态。每8-15秒随机点击一次页面以保持活动")
 
     # 等待页面加载和渲染
     time.sleep(15)
@@ -117,8 +118,8 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
                 
                 last_ws_status = current_ws_status
 
-            # 每360次点击（1小时）执行一次完整的Cookie验证
-            if cookie_validator and click_counter >= 360:  # 360 * 10秒 = 3600秒 = 1小时
+            # 每720次点击（约2小时）执行一次完整的Cookie验证
+            if cookie_validator and click_counter >= 720:  # 720 * ~10秒 ≈ 7200秒 ≈ 2小时
                 is_valid = cookie_validator.validate_cookies_in_main_thread()
 
                 if not is_valid:
@@ -127,8 +128,9 @@ def handle_successful_navigation(page: Page, logger, cookie_file_config, shutdow
 
                 click_counter = 0  # 重置计数器
 
-            # 使用可中断的睡眠，每秒检查一次关闭信号
-            for _ in range(10):  # 10秒 = 10次1秒检查
+            # 使用可中断的随机睡眠（8-15秒），每秒检查一次关闭信号
+            sleep_duration = random.randint(8, 15)
+            for _ in range(sleep_duration):
                 if shutdown_event and shutdown_event.is_set():
                     logger.info("收到关闭信号，正在优雅退出保持活动循环...")
                     return
