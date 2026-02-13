@@ -233,11 +233,26 @@ def load_instance_configurations(logger):
         elif source.type == "env_var":
             # 从环境变量名中提取索引，如 "USER_COOKIE_1" -> 1
             env_index = source.identifier.split("_")[-1]
-            instances.append({
+            try:
+                env_cookie_index = int(env_index)
+            except ValueError:
+                logger.warning(f"警告: 无法解析 Cookie 环境变量索引，跳过来源: {source.identifier}")
+                continue
+
+            instance_config = {
                 "cookie_file": None,
-                "env_cookie_index": int(env_index),
+                "env_cookie_index": env_cookie_index,
                 "cookie_source": source
-            })
+            }
+
+            # 支持每实例独立代理：CAMOUFOX_PROXY_N 对应 USER_COOKIE_N
+            instance_proxy_var = f"CAMOUFOX_PROXY_{env_cookie_index}"
+            instance_proxy_value = clean_env_value(os.getenv(instance_proxy_var))
+            if instance_proxy_value:
+                instance_config["proxy"] = instance_proxy_value
+                logger.info(f"检测到 {source.display_name} 的独立代理配置: {instance_proxy_var}")
+
+            instances.append(instance_config)
 
     logger.info(f"将启动 {len(instances)} 个浏览器实例")
 
