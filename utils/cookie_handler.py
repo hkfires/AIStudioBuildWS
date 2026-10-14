@@ -16,10 +16,12 @@ def convert_cookie_editor_to_playwright(cookies_from_editor, logger=None):
                 pw_cookie['expires'] = int(cookie['expirationDate'])
             else:
                 pw_cookie['expires'] = -1
+        elif 'expires' in cookie:
+            pw_cookie['expires'] = float(cookie['expires']) if cookie['expires'] is not None else -1
 
-        if 'sameSite' in cookie:
+        if 'sameSite' in cookie and cookie['sameSite'] is not None:
             same_site_value = str(cookie['sameSite']).lower()
-            if same_site_value == 'no_restriction':
+            if same_site_value in ('no_restriction', 'none'):
                 pw_cookie['sameSite'] = 'None'
             elif same_site_value in ['lax', 'strict']:
                 pw_cookie['sameSite'] = same_site_value.capitalize()
@@ -48,6 +50,11 @@ def convert_kv_to_playwright(kv_string, default_domain=".google.com", logger=Non
         list: Playwright 兼容的 Cookie 列表
     """
     playwright_cookies = []
+    if logger:
+        logger.warning(
+            "KV Cookie 字符串不包含原始 domain/path/SameSite 属性；"
+            "iframe Preview 认证失败时，请改用已登录浏览器导出的 JSON Cookie 数组以保留这些属性"
+        )
 
     # 按分号分割 Cookie
     cookie_pairs = kv_string.split(';')

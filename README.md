@@ -20,6 +20,10 @@ CLIProxyAPI 自 v6.3.x 版本起，开始支持通过 WebSocket 方式接入 AI 
 
 ### 第二步：准备 AIStudio Cookie
 
+推荐使用已登录浏览器导出的 **JSON Cookie 数组**，保留原始 `domain`、`path`、`secure` 和 `sameSite` 属性。先在该浏览器中确认目标应用的 Preview 可以正常加载，再导出并替换对应的 `USER_COOKIE_1`（或其他账号变量）。普通 `name=value` 字符串不包含这些属性，本程序会使用 `.google.com` 和 `SameSite=Lax` 默认值，可能影响 iframe Preview 认证。
+
+如果 AI Studio 编辑器可以打开，但 Preview 显示 Google 的 `401` 错误页，请先更新上述 Cookie 来源。Docker 部署更新环境变量后运行 `docker compose up -d --force-recreate`，重新加载凭证。
+
 Cookie 可以通过两种方式获取，两种方式选一种即可，推荐使用指纹浏览器方式获取：
 
 第一种方式：使用 AdsPower 指纹浏览器，登录 https://aistudio.google.com/ ，退出后编辑浏览器环境，复制 Cookie 内容，具体如下图所示：

@@ -32,3 +32,10 @@ __pycache__/
 
 # Claude guidance file
 CLAUDE.md
+
+# AI Studio app source (keep-alive target code, archived for reference only —
+# it runs inside AI Studio, not in this image)
+websocket-proxy-logger/
+
+# Local CodeGraph index
+.codegraph/

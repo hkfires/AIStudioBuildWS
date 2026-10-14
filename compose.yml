@@ -4,9 +4,13 @@ services:
     build: .
     pull_policy: never
     container_name: aistudio-websocket-app
-    env_file:
-      - .env
+    environment:
+      CAMOUFOX_INSTANCE_URL: ${CAMOUFOX_INSTANCE_URL:-}
+      USER_COOKIE_1: ${USER_COOKIE_1:-}
+      USER_COOKIE_2: ${USER_COOKIE_2:-}
+      USER_COOKIE_3: ${USER_COOKIE_3:-}
+      USER_COOKIE_4: ${USER_COOKIE_4:-}
     volumes:
       - ./cookies:/app/cookies:rw
       - ./logs:/app/logs:rw
-    restart: on-failure
+    restart: unless-stopped
